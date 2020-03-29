@@ -8,7 +8,8 @@
             <el-input v-model="formLabelAlign.userName"></el-input>
           </el-form-item>
           <el-form-item label="密码:">
-            <el-input v-model="formLabelAlign.userPassword"></el-input>
+            <!-- @keyup.enter.native属性，监听键盘的enter按键 -->
+            <el-input type="password" v-model="formLabelAlign.userPassword" @keyup.enter.native="submitForm()"></el-input>
           </el-form-item>
           <el-form-item>
             <el-button type="primary" @click="submitForm()">登录</el-button>
@@ -45,17 +46,24 @@ export default {
   methods: {
     async submitForm () {
       const result = await logIn(this.formLabelAlign.userName, this.formLabelAlign.userPassword)
-      if (result.success_code === 500) {
+      console.log('================')
+      console.log(result)
+      console.log('================')
+      if (result.code === 200) {
+        this.$message({
+          message: result.message,
+          type: 'success'
+        })
         // 进入页面
-        // this.$router.push({
-        //   name: 'About',
-        //   params: {
-        //     userName: result.message.userName,
-        //     userPassword: result.message.userPassword
-        //   }
-        // })
+        this.$router.push({
+          name: 'About',
+          params: {
+            userName: result.message.userName,
+            userPassword: result.message.userPassword
+          }
+        })
       } else {
-        alert(result.message || '未知错误🙅‍♂️')
+        this.$message.error(result.message)
       }
     }
   }
@@ -64,11 +72,16 @@ export default {
 
 <style scoped lang="less">
   .home {
-    margin-top: 200px;
+    width: 100%;
+    height: 726px;
+    position: relative;
     .logIn {
       width: 400px;
       height: 600px;
-      margin: 0px auto;
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
     }
     .head {
       font-size: 40px;
@@ -77,7 +90,7 @@ export default {
     }
     .body {
       width: 100%;
-      height: 500px;
+      height: 214px;
       el-form-item {
         margin-bottom: 60px;
       }
