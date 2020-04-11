@@ -17,6 +17,13 @@
         </el-form>
       </div>
     </div>
+
+    <!-- <form action="http://localhost:3000/upload" method="post" enctype="multipart/form-data" style="z-index:100;baciground-color:pink;position:fixed;left:0;top:0;">
+        <h2>单图上传</h2>
+        <input type="file" name="logo">
+        <textarea placeholder="placeholder" name="textContent" />
+        <input type="submit" value="提交">
+    </form> -->
   </div>
 </template>
 
