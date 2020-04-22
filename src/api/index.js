@@ -13,7 +13,10 @@ export const logIn = (userName, userPassword) => ajax(BASE_URL + '/logIn', { use
 export const deleteInfo = (type, deviceName) => ajax(BASE_URL + '/deleteInfo', { type, deviceName }, 'POST')
 
 // 添加数据
-export const addInfo = (index, subIndex) => ajax(BASE_URL + '/addInfo', { index, subIndex }, 'POST')
+export const addInfo = (addParam) => ajax(BASE_URL + '/addInfo', { addParam }, 'POST')
 
 // 修改数据
 export const modifyInfo = (index, subIndex) => ajax(BASE_URL + '/modifyInfo', { index, subIndex }, 'POST')
+
+// 查询数据
+export const searchInfo = (searchInfo) => ajax(BASE_URL + '/searchInfo', { searchInfo }, 'POST')

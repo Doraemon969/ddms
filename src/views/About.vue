@@ -2,15 +2,15 @@
 </script>
 
 <template>
-    <div class="device-wrapper">
+<div class="device-wrapper">
         <div class="box">
             <div class="left-list">
                 <el-row class="tac">
                     <el-col :span="20">
                         <h5 class="page-title">多多设备租赁后台</h5>
                         <el-menu
-                            default-active="2"
-                            active-text-color="#ffd04b"
+                            default-active="0"
+                            active-text-color="#f60"
                             class="el-menu-vertical-demo"
                             @open="handleOpen"
                             @close="handleClose"
@@ -28,6 +28,7 @@
                                         <div
                                             v-for="(subItem, subindex) in item.subDevice"
                                             v-bind:key="subindex"
+                                            @click="menuClick"
                                         >
                                             <el-menu-item
                                                 v-on:click="subClick(index, subindex)"
@@ -46,21 +47,30 @@
                         <el-autocomplete
                             class="input"
                             size="large"
-                            v-model="state"
+                            v-model="searcInfo"
                             :fetch-suggestions="querySearchAsync"
                             placeholder="请输入要搜索的内容"
                             @select="handleSelect"
+                            @keyup.enter.native="searchSubmit"
                         ></el-autocomplete>
+                        <el-button v-on:click="searchSubmit" style="margin-left:10px;">搜索</el-button>
                     </div>
                     <div class="add-btn">
-                        <el-button v-on:click="addUserInfo">添加</el-button>
+                        <el-button
+                            type="primary"
+                            @click="dialogFormVisible = true"
+                            v-on:click="addUserInfo"
+                        >添加</el-button>
                     </div>
                 </div>
                 <div class="device-detail">
                     <div class="editor">
                         <el-row>
                             <el-button v-on:click="deleteUserInfo">删除</el-button>
-                            <el-button v-on:click="modifyUserInfo">修改</el-button>
+                            <el-button
+                                @click="modifyDialogFormVisible = true"
+                                v-on:click="modifyUserInfo"
+                            >修改</el-button>
                         </el-row>
                     </div>
                     <div class="detial-content">
@@ -68,22 +78,24 @@
                             <ul style="list-style:none;">
                                 <li>
                                     <label>设备名称：</label>
-                                    <p>{{ deviceCategory[index].subDevice[subIndex].name }}</p>
+                                    <p>{{ searchMsg.name || deviceCategory[index].subDevice[subIndex].name }}</p>
                                 </li>
                                 <li>
                                     <label>设备描述：</label>
-                                    <p>{{ deviceCategory[index].subDevice[subIndex].des }}</p>
+                                    <p>{{ searchMsg.des || deviceCategory[index].subDevice[subIndex].des }}</p>
                                 </li>
                                 <li>
                                     <label>日租金：</label>
-                                    <p>{{ deviceCategory[index].subDevice[subIndex].price }}</p>
+                                    <p>{{ searchMsg.price || deviceCategory[index].subDevice[subIndex].price }}</p>
                                 </li>
-                                <li v-if="deviceCategory[index].subDevice[subIndex].status === 0">
+                                <li
+                                    v-if=" (searchMsg.status == '0') || (deviceCategory[index].subDevice[subIndex].status === '0')"
+                                >
                                     <label>使用状态：</label>
                                     <p>设备处于空闲状态</p>
                                 </li>
                                 <li
-                                    v-else-if="deviceCategory[index].subDevice[subIndex].status === 1"
+                                    v-else-if="(searchMsg.status == '1') || deviceCategory[index].subDevice[subIndex].status === '1'"
                                 >
                                     <label>使用状态：</label>
                                     <p>用户使用中</p>
@@ -91,7 +103,9 @@
                                 <li style="margin-top:40px;font-weight:bold;">
                                     <label>租客信息</label>
                                 </li>
-                                <div v-if="deviceCategory[index].subDevice[subIndex].status === 1">
+                                <div
+                                    v-if="(searchMsg.status === '1') || deviceCategory[index].subDevice[subIndex].status === '1'"
+                                >
                                     <li>
                                         <label>昵称：</label>
                                         <p>{{ deviceCategory[index].subDevice[subIndex].usedInfo.userNickName }}</p>
@@ -113,7 +127,7 @@
                         </ul>
                         <div class="right-map">
                             <div class="map">
-                                <div id="container" style="width:100%;height:100%;">地图站位</div>
+                                <div id="container" style="width:100%;height:100%;">地图占位</div>
                             </div>
                             <p class="local">设备所在位置</p>
                         </div>
@@ -121,382 +135,218 @@
                 </div>
             </div>
         </div>
-    </div>
+
+        <!-- 添加设备信息 -->
+        <el-dialog title="增加设备信息" :visible.sync="dialogFormVisible">
+            <el-form :model="form">
+                <el-form-item label="类型选择" :label-width="formLabelWidth" style="text-align: left;">
+                    <el-select v-model="form.type" placeholder="请选择设备类型">
+                        <el-option label="流行" value="popular"></el-option>
+                        <el-option label="高空作业" value="workHigh"></el-option>
+                        <el-option label="土方设备" value="earthmovingEquipment"></el-option>
+                        <el-option label="叉车" value="forkliftTruck"></el-option>
+                        <el-option label="气动工具" value="pneumaticTools"></el-option>
+                        <el-option label="物料搬运" value="truck"></el-option>
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="设备名称" :label-width="formLabelWidth">
+                    <el-input v-model="form.name" autocomplete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="设备描述" :label-width="formLabelWidth">
+                    <el-input v-model="form.des" autocomplete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="设备经度" :label-width="formLabelWidth">
+                    <el-input v-model="form.local.longtitue" autocomplete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="设备纬度" :label-width="formLabelWidth">
+                    <el-input v-model="form.local.latitue" autocomplete="off"></el-input>
+                </el-form-item>
+                <el-form-item
+                    label="设备状态选择"
+                    :label-width="formLabelWidth"
+                    style="text-align: left;"
+                >
+                    <el-select v-model="form.status" placeholder="请选择设备状态">
+                        <el-option label="使用中" value="1"></el-option>
+                        <el-option label="空闲中" value="0"></el-option>
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="用户微信昵称" :label-width="formLabelWidth">
+                    <el-input v-model="form.usedInfo.userNickName" autocomplete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="用户姓名" :label-width="formLabelWidth">
+                    <el-input v-model="form.userName" autocomplete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="用户手机" :label-width="formLabelWidth">
+                    <el-input v-model="form.usedInfo.userPhone" autocomplete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="用户使用设备开始时间" :label-width="formLabelWidth">
+                    <el-input v-model="form.usedInfo.useTimeStart" autocomplete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="用户使用设备结束时间" :label-width="formLabelWidth">
+                    <el-input v-model="form.usedInfo.useTimeEnd" autocomplete="off"></el-input>
+                </el-form-item>
+            </el-form>
+            <div slot="footer" class="dialog-footer">
+                <el-button @click="dialogFormVisible = false">取 消</el-button>
+                <el-button
+                    type="primary"
+                    @click="dialogFormVisible = false"
+                    v-on:click="addInfoSubmmit()"
+                >确 定</el-button>
+            </div>
+        </el-dialog>
+
+        <!-- 修改设备信息 -->
+        <el-dialog title="修改设备信息" :visible.sync="modifyDialogFormVisible">
+            <el-form :model="modifyForm">
+                <el-form-item label="类型选择" :label-width="formLabelWidth" style="text-align: left;">
+                    <el-select v-model="modifyForm.type">
+                        <el-option label="流行" value="popular"></el-option>
+                        <el-option label="高空作业" value="workHigh"></el-option>
+                        <el-option label="土方设备" value="earthmovingEquipment"></el-option>
+                        <el-option label="叉车" value="forkliftTruck"></el-option>
+                        <el-option label="气动工具" value="pneumaticTools"></el-option>
+                        <el-option label="物料搬运" value="truck"></el-option>
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="设备名称" :label-width="formLabelWidth">
+                    <el-input v-model="modifyForm.name" autocomplete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="设备描述" :label-width="formLabelWidth">
+                    <el-input v-model="modifyForm.des" autocomplete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="设备经度" :label-width="formLabelWidth">
+                    <el-input v-model="modifyForm.local.longtitue" autocomplete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="设备纬度" :label-width="formLabelWidth">
+                    <el-input v-model="modifyForm.local.latitue" autocomplete="off"></el-input>
+                </el-form-item>
+                <el-form-item
+                    label="设备状态选择"
+                    :label-width="formLabelWidth"
+                    style="text-align: left;"
+                >
+                    <el-select v-model="modifyForm.status" placeholder="请选择设备状态">
+                        <el-option label="使用中" value="1"></el-option>
+                        <el-option label="空闲中" value="0"></el-option>
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="用户微信昵称" :label-width="formLabelWidth">
+                    <el-input v-model="modifyForm.usedInfo.userNickName" autocomplete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="用户姓名" :label-width="formLabelWidth">
+                    <el-input v-model="modifyForm.usedInfo.userName" autocomplete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="用户手机" :label-width="formLabelWidth">
+                    <el-input v-model="modifyForm.usedInfo.userPhone" autocomplete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="用户使用设备开始时间" :label-width="formLabelWidth">
+                    <el-input v-model="modifyForm.usedInfo.useTimeStart" autocomplete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="用户使用设备结束时间" :label-width="formLabelWidth">
+                    <el-input v-model="modifyForm.usedInfo.useTimeEnd" autocomplete="off"></el-input>
+                </el-form-item>
+            </el-form>
+            <div slot="footer" class="dialog-footer">
+                <el-button @click="modifyDialogFormVisible = false">取 消</el-button>
+                <el-button
+                    type="primary"
+                    @click="modifyDialogFormVisible = false"
+                    v-on:click="modifyInfoSubmmit()"
+                >确 定</el-button>
+            </div>
+        </el-dialog>
+</div>
 </template>
 
 <script>
 // @ is an alias to /src
 // import HelloWorld from '@/components/HelloWorld.vue'
-import { deleteInfo, addInfo, modifyInfo, deviceInit } from './../api/index'
+import {
+    deleteInfo,
+    addInfo,
+    modifyInfo,
+    deviceInit,
+    searchInfo
+} from "./../api/index";
 export default {
     name: "About",
     components: {},
     data: function() {
         return {
+            modifyDialogFormVisible: false,
+            dialogFormVisible: false,
+            form: {
+                type: "",
+                local: {},
+                usedInfo: {}
+            },
+            modifyForm: {
+                type: "",
+                name: "",
+                des: "",
+                local: {
+                    longtitue: "",
+                    latitue: ""
+                },
+                status: "0",
+                usedInfo: {
+                    userNickName: "",
+                    userName: "",
+                    userPhone: "",
+                    useTimeStart: "",
+                    useTimeEnd: ""
+                }
+            },
+            formLabelWidth: "200px",
+            //
+            searcInfo: "",
+            searchMsg: {},
             restaurants: [],
             state: "",
-            timeout: null,
+            // timeout: null,
             index: 0,
             subIndex: 0,
-            deviceCategory: [
-                {
-                    index: 0,
-                    type: "流行",
-                    subDevice: [
-                        {
-                            name: "挖机1",
-                            des: "这款新型挖机，强悍无比，让你欲罢不能！",
-                            price: 0.01,
-                            local: {
-                                longtitue: "31.9624120000",
-                                latitue: "118.7483024600"
-                            },
-                            status: 1, // 0代表未被使用，1代表在被使用
-                            usedInfo: {
-                                userNickName: "brj-snail",
-                                userName: "卞瑞江",
-                                userPhone: "13814545080",
-                                useTimeStart: "20200202",
-                                useTimeEnd: "20200303"
-                            }
-                        },
-                        {
-                            name: "挖机2",
-                            des: "这23sdgdfgaf让你欲23ref罢不能！",
-                            price: 0.02,
-                            local: {
-                                longtitue: "38.6518",
-                                latitue: "104.07642"
-                            },
-                            status: 0, // 0代表未被使用，1代表在被使用
-                            usedInfo: {
-                                userNickName: "brj-snail",
-                                userName: "brj",
-                                userPhone: "13814545080",
-                                useTimeStart: "20200202",
-                                useTimeEnd: "20200303"
-                            }
-                        },
-                        {
-                            name: "挖机3",
-                            des: "这款新型挖机，强悍无比，让你欲罢不能！",
-                            price: 0.01,
-                            local: {
-                                longtitue: "38.6518",
-                                latitue: "104.07642"
-                            },
-                            status: 0, // 0代表未被使用，1代表在被使用
-                            usedInfo: {
-                                userNickName: "brj-snail",
-                                userName: "卞瑞江",
-                                userPhone: "13814545080",
-                                useTimeStart: "20200202",
-                                useTimeEnd: "20200303"
-                            }
-                        }
-                    ]
-                },
-                {
-                    index: 1,
-                    type: "高空作业",
-                    subDevice: [
-                        {
-                            name: "挖机1",
-                            des: "这款新型挖机，强悍无比，让你欲罢不能！",
-                            price: 0.01,
-                            local: {
-                                longtitue: "38.6518",
-                                latitue: "104.07642"
-                            },
-                            status: 0, // 0代表未被使用，1代表在被使用
-                            usedInfo: {
-                                userNickName: "brj-snail",
-                                userName: "卞瑞江",
-                                userPhone: "13814545080",
-                                useTimeStart: "20200202",
-                                useTimeEnd: "20200303"
-                            }
-                        },
-                        {
-                            name: "挖机2",
-                            des: "这款新型挖机，强悍无比，让你欲罢不能！",
-                            price: 0.01,
-                            local: {
-                                longtitue: "38.6518",
-                                latitue: "104.07642"
-                            },
-                            status: 0, // 0代表未被使用，1代表在被使用
-                            usedInfo: {
-                                userNickName: "brj-snail",
-                                userName: "卞瑞江",
-                                userPhone: "13814545080",
-                                useTimeStart: "20200202",
-                                useTimeEnd: "20200303"
-                            }
-                        },
-                        {
-                            name: "挖机3",
-                            des: "这款新型挖机，强悍无比，让你欲罢不能！",
-                            price: 0.01,
-                            local: {
-                                longtitue: "38.6518",
-                                latitue: "104.07642"
-                            },
-                            status: 0, // 0代表未被使用，1代表在被使用
-                            usedInfo: {
-                                userNickName: "brj-snail",
-                                userName: "卞瑞江",
-                                userPhone: "13814545080",
-                                useTimeStart: "20200202",
-                                useTimeEnd: "20200303"
-                            }
-                        }
-                    ]
-                },
-                {
-                    index: 2,
-                    type: "气动工具",
-                    subDevice: [
-                        {
-                            name: "挖机1",
-                            des: "这款新型挖机，强悍无比，让你欲罢不能！",
-                            price: 0.01,
-                            local: {
-                                longtitue: "38.6518",
-                                latitue: "104.07642"
-                            },
-                            status: 0, // 0代表未被使用，1代表在被使用
-                            usedInfo: {
-                                userNickName: "brj-snail",
-                                userName: "卞瑞江",
-                                userPhone: "13814545080",
-                                useTimeStart: "20200202",
-                                useTimeEnd: "20200303"
-                            }
-                        },
-                        {
-                            name: "挖机2",
-                            des: "这款新型挖机，强悍无比，让你欲罢不能！",
-                            price: 0.01,
-                            local: {
-                                longtitue: "38.6518",
-                                latitue: "104.07642"
-                            },
-                            status: 0, // 0代表未被使用，1代表在被使用
-                            usedInfo: {
-                                userNickName: "brj-snail",
-                                userName: "卞瑞江",
-                                userPhone: "13814545080",
-                                useTimeStart: "20200202",
-                                useTimeEnd: "20200303"
-                            }
-                        },
-                        {
-                            name: "挖机3",
-                            des: "这款新型挖机，强悍无比，让你欲罢不能！",
-                            price: 0.01,
-                            local: {
-                                longtitue: "38.6518",
-                                latitue: "104.07642"
-                            },
-                            status: 0, // 0代表未被使用，1代表在被使用
-                            usedInfo: {
-                                userNickName: "brj-snail",
-                                userName: "卞瑞江",
-                                userPhone: "13814545080",
-                                useTimeStart: "20200202",
-                                useTimeEnd: "20200303"
-                            }
-                        }
-                    ]
-                },
-                {
-                    index: 3,
-                    type: "土方设备",
-                    subDevice: [
-                        {
-                            name: "挖机1",
-                            des: "这款新型挖机，强悍无比，让你欲罢不能！",
-                            price: 0.01,
-                            local: {
-                                longtitue: "38.6518",
-                                latitue: "104.07642"
-                            },
-                            status: 0, // 0代表未被使用，1代表在被使用
-                            usedInfo: {
-                                userNickName: "brj-snail",
-                                userName: "卞瑞江",
-                                userPhone: "13814545080",
-                                useTimeStart: "20200202",
-                                useTimeEnd: "20200303"
-                            }
-                        },
-                        {
-                            name: "挖机2",
-                            des: "这款新型挖机，强悍无比，让你欲罢不能！",
-                            price: 0.01,
-                            local: {
-                                longtitue: "38.6518",
-                                latitue: "104.07642"
-                            },
-                            status: 0, // 0代表未被使用，1代表在被使用
-                            usedInfo: {
-                                userNickName: "brj-snail",
-                                userName: "卞瑞江",
-                                userPhone: "13814545080",
-                                useTimeStart: "20200202",
-                                useTimeEnd: "20200303"
-                            }
-                        },
-                        {
-                            name: "挖机3",
-                            des: "这款新型挖机，强悍无比，让你欲罢不能！",
-                            price: 0.01,
-                            local: {
-                                longtitue: "38.6518",
-                                latitue: "104.07642"
-                            },
-                            status: 0, // 0代表未被使用，1代表在被使用
-                            usedInfo: {
-                                userNickName: "brj-snail",
-                                userName: "卞瑞江",
-                                userPhone: "13814545080",
-                                useTimeStart: "20200202",
-                                useTimeEnd: "20200303"
-                            }
-                        }
-                    ]
-                },
-                {
-                    index: 4,
-                    type: "物料搬运",
-                    subDevice: [
-                        {
-                            name: "挖机1",
-                            des: "这款新型挖机，强悍无比，让你欲罢不能！",
-                            price: 0.01,
-                            local: {
-                                longtitue: "38.6518",
-                                latitue: "104.07642"
-                            },
-                            status: 0, // 0代表未被使用，1代表在被使用
-                            usedInfo: {
-                                userNickName: "brj-snail",
-                                userName: "卞瑞江",
-                                userPhone: "13814545080",
-                                useTimeStart: "20200202",
-                                useTimeEnd: "20200303"
-                            }
-                        },
-                        {
-                            name: "挖机2",
-                            des: "这款新型挖机，强悍无比，让你欲罢不能！",
-                            price: 0.01,
-                            local: {
-                                longtitue: "38.6518",
-                                latitue: "104.07642"
-                            },
-                            status: 0, // 0代表未被使用，1代表在被使用
-                            usedInfo: {
-                                userNickName: "brj-snail",
-                                userName: "卞瑞江",
-                                userPhone: "13814545080",
-                                useTimeStart: "20200202",
-                                useTimeEnd: "20200303"
-                            }
-                        },
-                        {
-                            name: "挖机3",
-                            des: "这款新型挖机，强悍无比，让你欲罢不能！",
-                            price: 0.01,
-                            local: {
-                                longtitue: "38.6518",
-                                latitue: "104.07642"
-                            },
-                            status: 0, // 0代表未被使用，1代表在被使用
-                            usedInfo: {
-                                userNickName: "brj-snail",
-                                userName: "卞瑞江",
-                                userPhone: "13814545080",
-                                useTimeStart: "20200202",
-                                useTimeEnd: "20200303"
-                            }
-                        }
-                    ]
-                },
-                {
-                    index: 5,
-                    type: "叉车和拖车",
-                    subDevice: [
-                        {
-                            name: "挖机1",
-                            des: "这款新型挖机，强悍无比，让你欲罢不能！",
-                            price: 0.01,
-                            local: {
-                                longtitue: "38.6518",
-                                latitue: "104.07642"
-                            },
-                            status: 0, // 0代表未被使用，1代表在被使用
-                            usedInfo: {
-                                userNickName: "brj-snail",
-                                userName: "卞瑞江",
-                                userPhone: "13814545080",
-                                useTimeStart: "20200202",
-                                useTimeEnd: "20200303"
-                            }
-                        },
-                        {
-                            name: "挖机2",
-                            des: "这款新型挖机，强悍无比，让你欲罢不能！",
-                            price: 0.01,
-                            local: {
-                                longtitue: "38.6518",
-                                latitue: "104.07642"
-                            },
-                            status: 0, // 0代表未被使用，1代表在被使用
-                            usedInfo: {
-                                userNickName: "brj-snail",
-                                userName: "卞瑞江",
-                                userPhone: "13814545080",
-                                useTimeStart: "20200202",
-                                useTimeEnd: "20200303"
-                            }
-                        },
-                        {
-                            name: "挖机3",
-                            des: "这款新型挖机，强悍无比，让你欲罢不能！",
-                            price: 0.01,
-                            local: {
-                                longtitue: "38.6518",
-                                latitue: "104.07642"
-                            },
-                            status: 0, // 0代表未被使用，1代表在被使用
-                            usedInfo: {
-                                userNickName: "brj-snail",
-                                userName: "卞瑞江",
-                                userPhone: "13814545080",
-                                useTimeStart: "20200202",
-                                useTimeEnd: "20200303"
-                            }
-                        }
-                    ]
-                }
-            ],
+            deviceCategory: null,
             userInfo: {
                 userName: "",
                 userPassword: ""
             }
         };
     },
+    created() {
+        this.deviceInitfun();
+        // 请求数据
+        this.restaurants = this.loadAll();
+        this.userName = this.$route.params.userName;
+        this.userPassword = this.$route.params.userPassword;
+        setTimeout(() => {
+            this.init();
+        }, 3000);
+    },
     mounted() {
         // 请求数据
         this.restaurants = this.loadAll();
         this.userName = this.$route.params.userName;
         this.userPassword = this.$route.params.userPassword;
-        // this.init();
-        this.deviceInitfun();
+        setTimeout(() => {
+            this.init();
+        }, 3000);
     },
-    computed: {
+    computed: {},
+    methods: {
+        async addInfoSubmmit() {
+            // let result = await addInfo(this.form)
+            let result = await addInfo(this.modifyForm);
+            if (result.code == 200) {
+                this.$message.success("添加成功");
+                this.deviceInitfun();
+            } else {
+                this.$message.error("添加失败");
+            }
+        },
+        // 地图初始化
         init() {
             const latlng = new qq.maps.LatLng(
                 this.deviceCategory[this.index].subDevice[
@@ -516,9 +366,8 @@ export default {
                 document.getElementById("container"),
                 mapOptions
             );
-        }
-    },
-    methods: {
+        },
+
         handleOpen(key, keyPath) {
             console.log(key, "+++++++++++", keyPath);
         },
@@ -530,203 +379,92 @@ export default {
         subClick(index, subIndex) {
             this.index = index;
             this.subIndex = subIndex;
+            this.init();
+            let typeName = "";
+            switch (this.deviceCategory[this.index].type) {
+                case "流行":
+                    typeName = "popular";
+                    break;
+                case "高空作业":
+                    typeName = "workHigh";
+                    break;
+                case "气动工具":
+                    typeName = "pneumaticTools";
+                    break;
+                case "土方设备":
+                    typeName = "earthmovingEquipment";
+                    break;
+                case "物料搬运":
+                    typeName = "truck";
+                    break;
+                case "叉车和拖车":
+                    typeName = "forkliftTruck";
+                    break;
+            }
+            this.modifyForm.type = typeName;
+            this.modifyForm.name = this.deviceCategory[this.index].subDevice[
+                subIndex
+            ].name;
+            this.modifyForm.des = this.deviceCategory[this.index].subDevice[
+                subIndex
+            ].des;
+            this.modifyForm.status = this.deviceCategory[this.index].subDevice[
+                subIndex
+            ].status;
+            this.modifyForm.local.longtitue = this.deviceCategory[
+                this.index
+            ].subDevice[subIndex].local.longtitue;
+            this.modifyForm.local.latitue = this.deviceCategory[
+                this.index
+            ].subDevice[subIndex].local.latitue;
+            this.modifyForm.usedInfo.userNickName = this.deviceCategory[
+                this.index
+            ].subDevice[subIndex].usedInfo.userNickName;
+            this.modifyForm.usedInfo.userName = this.deviceCategory[
+                this.index
+            ].subDevice[subIndex].usedInfo.userName;
+            this.modifyForm.usedInfo.userPhone = this.deviceCategory[
+                this.index
+            ].subDevice[subIndex].usedInfo.userPhone;
+            this.modifyForm.usedInfo.useTimeStart = this.deviceCategory[
+                this.index
+            ].subDevice[subIndex].usedInfo.useTimeStart;
+            this.modifyForm.usedInfo.useTimeEnd = this.deviceCategory[
+                this.index
+            ].subDevice[subIndex].usedInfo.useTimeEnd;
         },
 
         loadAll() {
             return [
                 {
-                    value: "三全鲜食（北新泾店）",
-                    address: "长宁区新渔路144号"
+                    value: "挖机1"
                 },
                 {
-                    value: "Hot honey 首尔炸鸡（仙霞路）",
-                    address: "上海市长宁区淞虹路661号"
+                    value: "挖机2"
                 },
                 {
-                    value: "新旺角茶餐厅",
-                    address: "上海市普陀区真北路988号创邑金沙谷6号楼113"
+                    value: "挖机3"
                 },
                 {
-                    value: "泷千家(天山西路店)",
-                    address: "天山西路438号"
+                    value: "土方1"
                 },
                 {
-                    value: "胖仙女纸杯蛋糕（上海凌空店）",
-                    address: "上海市长宁区金钟路968号1幢18号楼一层商铺18-101"
+                    value: "土方2"
                 },
                 {
-                    value: "贡茶",
-                    address: "上海市长宁区金钟路633号"
+                    value: "土方3"
                 },
                 {
-                    value: "豪大大香鸡排超级奶爸",
-                    address: "上海市嘉定区曹安公路曹安路1685号"
+                    value: "叉车1"
                 },
                 {
-                    value: "茶芝兰（奶茶，手抓饼）",
-                    address: "上海市普陀区同普路1435号"
+                    value: "叉车2"
                 },
                 {
-                    value: "十二泷町",
-                    address: "上海市北翟路1444弄81号B幢-107"
+                    value: "气动1"
                 },
                 {
-                    value: "星移浓缩咖啡",
-                    address: "上海市嘉定区新郁路817号"
-                },
-                {
-                    value: "阿姨奶茶/豪大大",
-                    address: "嘉定区曹安路1611号"
-                },
-                {
-                    value: "新麦甜四季甜品炸鸡",
-                    address: "嘉定区曹安公路2383弄55号"
-                },
-                {
-                    value: "Monica摩托主题咖啡店",
-                    address: "嘉定区江桥镇曹安公路2409号1F，2383弄62号1F"
-                },
-                {
-                    value: "浮生若茶（凌空soho店）",
-                    address: "上海长宁区金钟路968号9号楼地下一层"
-                },
-                {
-                    value: "NONO JUICE  鲜榨果汁",
-                    address: "上海市长宁区天山西路119号"
-                },
-                {
-                    value: "CoCo都可(北新泾店）",
-                    address: "上海市长宁区仙霞西路"
-                },
-                {
-                    value: "快乐柠檬（神州智慧店）",
-                    address: "上海市长宁区天山西路567号1层R117号店铺"
-                },
-                {
-                    value: "Merci Paul cafe",
-                    address: "上海市普陀区光复西路丹巴路28弄6号楼819"
-                },
-                {
-                    value: "猫山王（西郊百联店）",
-                    address: "上海市长宁区仙霞西路88号第一层G05-F01-1-306"
-                },
-                {
-                    value: "枪会山",
-                    address: "上海市普陀区棕榈路"
-                },
-                {
-                    value: "纵食",
-                    address: "元丰天山花园(东门) 双流路267号"
-                },
-                {
-                    value: "钱记",
-                    address: "上海市长宁区天山西路"
-                },
-                {
-                    value: "壹杯加",
-                    address: "上海市长宁区通协路"
-                },
-                {
-                    value: "唦哇嘀咖",
-                    address:
-                        "上海市长宁区新泾镇金钟路999号2幢（B幢）第01层第1-02A单元"
-                },
-                {
-                    value: "爱茜茜里(西郊百联)",
-                    address: "长宁区仙霞西路88号1305室"
-                },
-                {
-                    value: "爱茜茜里(近铁广场)",
-                    address:
-                        "上海市普陀区真北路818号近铁城市广场北区地下二楼N-B2-O2-C商铺"
-                },
-                {
-                    value: "鲜果榨汁（金沙江路和美广店）",
-                    address: "普陀区金沙江路2239号金沙和美广场B1-10-6"
-                },
-                {
-                    value: "开心丽果（缤谷店）",
-                    address: "上海市长宁区威宁路天山路341号"
-                },
-                {
-                    value: "超级鸡车（丰庄路店）",
-                    address: "上海市嘉定区丰庄路240号"
-                },
-                {
-                    value: "妙生活果园（北新泾店）",
-                    address: "长宁区新渔路144号"
-                },
-                {
-                    value: "香宜度麻辣香锅",
-                    address: "长宁区淞虹路148号"
-                },
-                {
-                    value: "凡仔汉堡（老真北路店）",
-                    address: "上海市普陀区老真北路160号"
-                },
-                {
-                    value: "港式小铺",
-                    address: "上海市长宁区金钟路968号15楼15-105室"
-                },
-                {
-                    value: "蜀香源麻辣香锅（剑河路店）",
-                    address: "剑河路443-1"
-                },
-                {
-                    value: "北京饺子馆",
-                    address: "长宁区北新泾街道天山西路490-1号"
-                },
-                {
-                    value: "饭典*新简餐（凌空SOHO店）",
-                    address: "上海市长宁区金钟路968号9号楼地下一层9-83室"
-                },
-                {
-                    value: "焦耳·川式快餐（金钟路店）",
-                    address: "上海市金钟路633号地下一层甲部"
-                },
-                {
-                    value: "动力鸡车",
-                    address: "长宁区仙霞西路299弄3号101B"
-                },
-                {
-                    value: "浏阳蒸菜",
-                    address: "天山西路430号"
-                },
-                {
-                    value: "四海游龙（天山西路店）",
-                    address: "上海市长宁区天山西路"
-                },
-                {
-                    value: "樱花食堂（凌空店）",
-                    address: "上海市长宁区金钟路968号15楼15-105室"
-                },
-                {
-                    value: "壹分米客家传统调制米粉(天山店)",
-                    address: "天山西路428号"
-                },
-                {
-                    value: "福荣祥烧腊（平溪路店）",
-                    address: "上海市长宁区协和路福泉路255弄57-73号"
-                },
-                {
-                    value: "速记黄焖鸡米饭",
-                    address: "上海市长宁区北新泾街道金钟路180号1层01号摊位"
-                },
-                {
-                    value: "红辣椒麻辣烫",
-                    address: "上海市长宁区天山西路492号"
-                },
-                {
-                    value: "(小杨生煎)西郊百联餐厅",
-                    address: "长宁区仙霞西路88号百联2楼"
-                },
-                {
-                    value: "阳阳麻辣烫",
-                    address: "天山西路389号"
-                },
-                {
-                    value: "南拳妈妈龙虾盖浇饭",
-                    address: "普陀区金沙江路1699号鑫乐惠美食广场A13"
+                    value: "气动2"
                 }
             ];
         },
@@ -747,7 +485,7 @@ export default {
                 return (
                     state.value
                         .toLowerCase()
-                        .indexOf(queryString.toLowerCase()) === 0
+                        .indexOf(queryString.toLowerCase()) === "0"
                 );
             };
         },
@@ -757,45 +495,81 @@ export default {
         },
 
         // 向后台发送要删除的数据
-        async deleteUserInfo(){
-          let index = this.index
-          let subIndex = this.subIndex
-          let deviceName  = this.deviceCategory[index].subDevice[subIndex].name
-          let type  = this.deviceCategory[this.index].type
-          let result = await deleteInfo(type, deviceName)
+        async deleteUserInfo() {
+            let index = this.index;
+            let subIndex = this.subIndex;
+            if (this.deviceCategory[subIndex].subDevice.length <= 1) {
+                this.$message.error("请至少保留一个设备信息");
+                return;
+            }
+            let deviceName = this.deviceCategory[index].subDevice[subIndex]
+                .name;
+            let type = this.deviceCategory[this.index].type;
+            let result = await deleteInfo(type, deviceName);
             if (result.code === 200) {
-            this.$message({
-                message: result.message,
-                type: 'success'
-                })
-                // 删除对应的数据
-                if(this.deviceCategory[subIndex].subDevice.length > 1){
-                    this.deviceCategory[subIndex].subDevice.splice(subIndex,1)
-                }else{
-                    this.$message.error("清保留一个设备信息")
-                }
+                this.$message({
+                    message: result.message,
+                    type: "success"
+                });
+                this.deviceCategory[subIndex].subDevice.splice(subIndex, 1);
+                this.deviceInitfun();
             } else {
-                this.$message.error(result.message)
+                this.$message.error(result.message);
             }
         },
 
         // 向后台发送要添加的数据
-        addUserInfo(){
-          console.log(this.index, this.subIndex);
+        addUserInfo() {
+            console.log(this.index, this.subIndex);
         },
 
         // 向后台发送要修改的数据
-        modifyUserInfo(){
-          console.log(this.index, this.subIndex);
+        modifyUserInfo() {
+            console.log(this.index, this.subIndex);
+        },
+        async modifyInfoSubmmit() {
+            let tmp = this.deviceCategory[this.index].subDevice[this.subIndex];
+            tmp.type = this.deviceCategory[this.index].type;
+
+            let index = this.index;
+            let subIndex = this.subIndex;
+            let deviceName = this.deviceCategory[index].subDevice[subIndex]
+                .name;
+            let type = this.deviceCategory[this.index].type;
+            let resulta = await deleteInfo(type, deviceName);
+            let resultb = await addInfo(this.modifyForm);
+            if (resulta.code == 200 && resultb.code == 200) {
+                this.$message.success("修改成功");
+                this.deviceInitfun()
+                this.subClick()
+            } else {
+                this.$message.erro("修改失败");
+            }
         },
 
         // 初始化数据
-        async deviceInitfun(){
+        async deviceInitfun() {
             let result = await deviceInit();
-            // alert(result)
-            console.log('================', );
-            console.log(result);
-            console.log('================', );
+            console.log('========++++++++++++++++========+++++++++++');
+            console.log("result", result);
+            console.log('========++++++++++++++++========+++++++++++');
+            this.deviceCategory = result.message;
+        },
+
+        // 提交搜索数据
+        async searchSubmit() {
+            let result = await searchInfo(this.searcInfo);
+            this.searchMsg = result.message;
+            if (result.code === 200) {
+                this.$message.success("查询成功！");
+            } else {
+                this.$message.error("查询失败！");
+            }
+        },
+
+        // 清除查询缓存
+        menuClick() {
+            this.searchMsg = [];
         }
     }
 };
