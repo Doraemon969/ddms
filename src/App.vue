@@ -1,10 +1,11 @@
 <template>
   <div id="app">
     <div id="nav">
-      <router-link to="/">Home</router-link> |
-      <router-link to="/about">About</router-link>
+      <!-- <router-link to="/">Home</router-link> |
+      <router-link to="/about">About</router-link> -->
     </div>
     <router-view/>
+    <div id="bgImg"></div>
   </div>
 </template>
 
@@ -17,8 +18,20 @@
   color: #2c3e50;
 }
 
+#bgImg {
+  position: fixed;
+left: 0;
+top: 0;
+// 背景图片
+  width: 100%;
+  height: 100%;
+  background: url('../src/imgs/bg.jpg');
+  background-size: 100% 100%;
+  z-index: -100;
+}
+
 #nav {
-  padding: 30px;
+  // padding: 30px;
 
   a {
     font-weight: bold;
