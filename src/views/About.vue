@@ -28,7 +28,6 @@
                                         <div
                                             v-for="(subItem, subindex) in item.subDevice"
                                             v-bind:key="subindex"
-                                            @click="menuClick"
                                         >
                                             <el-menu-item
                                                 v-on:click="subClick(index, subindex)"
@@ -78,25 +77,27 @@
                             <ul style="list-style:none;">
                                 <li>
                                     <label>设备名称：</label>
-                                    <p>{{ searchMsg.name || deviceCategory[index].subDevice[subIndex].name }}</p>
+                                    <p>{{ modifyForm.name }}</p>
                                 </li>
                                 <li>
                                     <label>设备描述：</label>
-                                    <p>{{ searchMsg.des || deviceCategory[index].subDevice[subIndex].des }}</p>
+                                    <p>{{ modifyForm.des }}</p>
+                                </li>
+                                <li>
+                                    <label>设备图片地址：</label>
+                                    <p>{{ modifyForm.imgUrl }}</p>
                                 </li>
                                 <li>
                                     <label>日租金：</label>
-                                    <p>{{ searchMsg.price || deviceCategory[index].subDevice[subIndex].price }}</p>
+                                    <p>{{ modifyForm.price }}</p>
                                 </li>
                                 <li
-                                    v-if=" (searchMsg.status == '0') || (deviceCategory[index].subDevice[subIndex].status === '0')"
+                                    v-if="modifyForm.status === '0'"
                                 >
                                     <label>使用状态：</label>
                                     <p>设备处于空闲状态</p>
                                 </li>
-                                <li
-                                    v-else-if="(searchMsg.status == '1') || deviceCategory[index].subDevice[subIndex].status === '1'"
-                                >
+                                <li v-else-if="modifyForm.status === '1'" >
                                     <label>使用状态：</label>
                                     <p>用户使用中</p>
                                 </li>
@@ -104,23 +105,23 @@
                                     <label>租客信息</label>
                                 </li>
                                 <div
-                                    v-if="(searchMsg.status === '1') || deviceCategory[index].subDevice[subIndex].status === '1'"
+                                    v-if="modifyForm.status === '1'"
                                 >
                                     <li>
                                         <label>昵称：</label>
-                                        <p>{{ deviceCategory[index].subDevice[subIndex].usedInfo.userNickName }}</p>
+                                        <p v-if="modifyForm.usedInfo.userNickName">{{ modifyForm.usedInfo.userNickName }}</p>
                                     </li>
                                     <li>
                                         <label>姓名：</label>
-                                        <p>{{ deviceCategory[index].subDevice[subIndex].usedInfo.userName }}</p>
+                                        <p v-if="modifyForm.usedInfo.userName">{{ modifyForm.usedInfo.userName }}</p>
                                     </li>
                                     <li>
                                         <label>手机号码：</label>
-                                        <p>{{ deviceCategory[index].subDevice[subIndex].usedInfo.userPhone }}</p>
+                                        <p v-if="modifyForm.usedInfo.userPhone">{{ modifyForm.usedInfo.userPhone }}</p>
                                     </li>
                                     <li>
                                         <label>使用期限：</label>
-                                        <p>{{ deviceCategory[index].subDevice[subIndex].usedInfo.useTimeStart}} ~ {{ deviceCategory[index].subDevice[subIndex].usedInfo.useTimeEnd}}</p>
+                                        <p v-if="modifyForm.usedInfo.useTimeStart || modifyForm.usedInfo.useTimeEnd">{{ modifyForm.usedInfo.useTimeStart}} ~ {{ modifyForm.usedInfo.useTimeEnd}}</p>
                                     </li>
                                 </div>
                             </ul>
@@ -155,6 +156,12 @@
                 <el-form-item label="设备描述" :label-width="formLabelWidth">
                     <el-input v-model="form.des" autocomplete="off"></el-input>
                 </el-form-item>
+                <el-form-item label="设备租金" :label-width="formLabelWidth">
+                    <el-input v-model="form.price" autocomplete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="设备图片地址" :label-width="formLabelWidth">
+                    <el-input v-model="form.imgUrl" autocomplete="off"></el-input>
+                </el-form-item>
                 <el-form-item label="设备经度" :label-width="formLabelWidth">
                     <el-input v-model="form.local.longtitue" autocomplete="off"></el-input>
                 </el-form-item>
@@ -175,7 +182,7 @@
                     <el-input v-model="form.usedInfo.userNickName" autocomplete="off"></el-input>
                 </el-form-item>
                 <el-form-item label="用户姓名" :label-width="formLabelWidth">
-                    <el-input v-model="form.userName" autocomplete="off"></el-input>
+                    <el-input v-model="form.usedInfo.userName" autocomplete="off"></el-input>
                 </el-form-item>
                 <el-form-item label="用户手机" :label-width="formLabelWidth">
                     <el-input v-model="form.usedInfo.userPhone" autocomplete="off"></el-input>
@@ -215,6 +222,12 @@
                 </el-form-item>
                 <el-form-item label="设备描述" :label-width="formLabelWidth">
                     <el-input v-model="modifyForm.des" autocomplete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="设备图片" :label-width="formLabelWidth">
+                    <el-input v-model="modifyForm.imgUrl" autocomplete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="设备日租价" :label-width="formLabelWidth">
+                    <el-input v-model="modifyForm.price" autocomplete="off"></el-input>
                 </el-form-item>
                 <el-form-item label="设备经度" :label-width="formLabelWidth">
                     <el-input v-model="modifyForm.local.longtitue" autocomplete="off"></el-input>
@@ -275,22 +288,17 @@ export default {
     components: {},
     data: function() {
         return {
-            modifyDialogFormVisible: false,
-            dialogFormVisible: false,
-            form: {
-                type: "",
-                local: {},
-                usedInfo: {}
-            },
-            modifyForm: {
+            modifyForm: { // 数据临时放置
                 type: "",
                 name: "",
                 des: "",
+                price: "",
+                imgUrl: "",
                 local: {
                     longtitue: "",
                     latitue: ""
                 },
-                status: "0",
+                status: "",
                 usedInfo: {
                     userNickName: "",
                     userName: "",
@@ -298,6 +306,13 @@ export default {
                     useTimeStart: "",
                     useTimeEnd: ""
                 }
+             },
+            modifyDialogFormVisible: false,
+            dialogFormVisible: false,
+            form: {
+                type: "",
+                local: {},
+                usedInfo: {}
             },
             formLabelWidth: "200px",
             //
@@ -323,39 +338,27 @@ export default {
         this.userPassword = this.$route.params.userPassword;
         setTimeout(() => {
             this.init();
-        }, 3000);
+            this.modifyForm = this.deviceCategory[this.index].subDevice[this.subIndex];
+            console.log("this.modifyForm", this.modifyForm);
+        }, 2000);
     },
     mounted() {
-        // 请求数据
-        this.restaurants = this.loadAll();
-        this.userName = this.$route.params.userName;
-        this.userPassword = this.$route.params.userPassword;
-        setTimeout(() => {
-            this.init();
-        }, 3000);
+        this.subClick(0, 0)
     },
     computed: {},
     methods: {
-        async addInfoSubmmit() {
-            // let result = await addInfo(this.form)
-            let result = await addInfo(this.modifyForm);
-            if (result.code == 200) {
-                this.$message.success("添加成功");
-                this.deviceInitfun();
-            } else {
-                this.$message.error("添加失败");
-            }
+        // 数据初始化
+        async deviceInitfun() {
+            let result = await deviceInit();
+            this.deviceCategory = result.message;
         },
+
         // 地图初始化
-        init() {
-            const latlng = new qq.maps.LatLng(
-                this.deviceCategory[this.index].subDevice[
-                    this.subIndex
-                ].local.longtitue,
-                this.deviceCategory[this.index].subDevice[
-                    this.subIndex
-                ].local.latitue
-            );
+        init(log, lat) {
+            console.log('================', );
+            console.log("地图", this.index, this.subIndex);
+            console.log('================', );
+            const latlng = new qq.maps.LatLng(log || this.deviceCategory[this.index].subDevice[this.subIndex].local.longtitue, lat || this.deviceCategory[this.index].subDevice[this.subIndex].local.latitue);
             const mapOptions = {
                 zoom: 15, // 设置地图缩放级别
                 center: latlng, // 设置中心点样式
@@ -376,12 +379,36 @@ export default {
             console.log(key, keyPath);
         },
 
+        // 菜单点击
         subClick(index, subIndex) {
-            this.index = index;
-            this.subIndex = subIndex;
-            this.init();
+            this.index = index
+            this.subIndex = subIndex
+            console.log('================', );
+            this.init(); // 地图初始化
+            console.log(this.deviceCategory[index].subDevice[subIndex], this.modifyForm);
+            console.log('================', );
+            // 清除数据
+            this.modifyForm.usedInfo.userNickName = '';
+            this.modifyForm.usedInfo.userName = '';
+            this.modifyForm.usedInfo.userPhone = '';
+            this.modifyForm.usedInfo.useTimeStart = '';
+            this.modifyForm.usedInfo.useTimeEnd = '';
+            // //////////////////
+            this.modifyForm.name = this.deviceCategory[index].subDevice[subIndex].name;
+            this.modifyForm.des = this.deviceCategory[index].subDevice[subIndex].des;
+            this.modifyForm.price = this.deviceCategory[index].subDevice[subIndex].price;
+            this.modifyForm.imgUrl = this.deviceCategory[index].subDevice[subIndex].imgUrl;
+            this.modifyForm.status = this.deviceCategory[index].subDevice[subIndex].status;
+            this.modifyForm.local.longtitue = this.deviceCategory[index].subDevice[subIndex].local.longtitue;
+            this.modifyForm.local.latitue = this.deviceCategory[index].subDevice[subIndex].local.latitue;
+            this.modifyForm.usedInfo.userNickName = this.deviceCategory[index].subDevice[subIndex].usedInfo.userNickName;
+            this.modifyForm.usedInfo.userName = this.deviceCategory[index].subDevice[subIndex].usedInfo.userName;
+            this.modifyForm.usedInfo.userPhone = this.deviceCategory[index].subDevice[subIndex].usedInfo.userPhone;
+            this.modifyForm.usedInfo.useTimeStart = this.deviceCategory[index].subDevice[subIndex].usedInfo.useTimeStart;
+            this.modifyForm.usedInfo.useTimeEnd = this.deviceCategory[index].subDevice[subIndex].usedInfo.useTimeEnd;
+            console.log("this.modifyForm", this.modifyForm);
             let typeName = "";
-            switch (this.deviceCategory[this.index].type) {
+            switch (this.deviceCategory[index].type) {
                 case "流行":
                     typeName = "popular";
                     break;
@@ -402,48 +429,21 @@ export default {
                     break;
             }
             this.modifyForm.type = typeName;
-            this.modifyForm.name = this.deviceCategory[this.index].subDevice[
-                subIndex
-            ].name;
-            this.modifyForm.des = this.deviceCategory[this.index].subDevice[
-                subIndex
-            ].des;
-            this.modifyForm.status = this.deviceCategory[this.index].subDevice[
-                subIndex
-            ].status;
-            this.modifyForm.local.longtitue = this.deviceCategory[
-                this.index
-            ].subDevice[subIndex].local.longtitue;
-            this.modifyForm.local.latitue = this.deviceCategory[
-                this.index
-            ].subDevice[subIndex].local.latitue;
-            this.modifyForm.usedInfo.userNickName = this.deviceCategory[
-                this.index
-            ].subDevice[subIndex].usedInfo.userNickName;
-            this.modifyForm.usedInfo.userName = this.deviceCategory[
-                this.index
-            ].subDevice[subIndex].usedInfo.userName;
-            this.modifyForm.usedInfo.userPhone = this.deviceCategory[
-                this.index
-            ].subDevice[subIndex].usedInfo.userPhone;
-            this.modifyForm.usedInfo.useTimeStart = this.deviceCategory[
-                this.index
-            ].subDevice[subIndex].usedInfo.useTimeStart;
-            this.modifyForm.usedInfo.useTimeEnd = this.deviceCategory[
-                this.index
-            ].subDevice[subIndex].usedInfo.useTimeEnd;
         },
 
         loadAll() {
             return [
                 {
-                    value: "挖机1"
+                    value: "流行1"
                 },
                 {
-                    value: "挖机2"
+                    value: "流行2"
                 },
                 {
-                    value: "挖机3"
+                    value: "流行3"
+                },
+                {
+                    value: "流行4"
                 },
                 {
                     value: "土方1"
@@ -477,7 +477,7 @@ export default {
             clearTimeout(this.timeout);
             this.timeout = setTimeout(() => {
                 cb(results);
-            }, 3000 * Math.random());
+            }, 2000 * Math.random());
         },
 
         createStateFilter(queryString) {
@@ -494,7 +494,24 @@ export default {
             console.log(item);
         },
 
-        // 向后台发送要删除的数据
+        // 添加 数据
+        async addInfoSubmmit() {
+            let result = await addInfo(this.form)
+            // let result = await addInfo(this.modifyForm);
+            if (result.code == 200) {
+                this.$message.success("添加成功");
+                this.deviceInitfun();
+                this.form = {
+                    type: "",
+                    local: {},
+                    usedInfo: {}
+                }
+            } else {
+                this.$message.error("添加失败");
+            }
+        },
+
+        // 向后台发送要 删除 的数据
         async deleteUserInfo() {
             let index = this.index;
             let subIndex = this.subIndex;
@@ -518,12 +535,12 @@ export default {
             }
         },
 
-        // 向后台发送要添加的数据
+        // 向后台发送要 添加 的数据
         addUserInfo() {
             console.log(this.index, this.subIndex);
         },
 
-        // 向后台发送要修改的数据
+        // 向后台发送要 修改 的数据
         modifyUserInfo() {
             console.log(this.index, this.subIndex);
         },
@@ -547,30 +564,35 @@ export default {
             }
         },
 
-        // 初始化数据
-        async deviceInitfun() {
-            let result = await deviceInit();
-            console.log('========++++++++++++++++========+++++++++++');
-            console.log("result", result);
-            console.log('========++++++++++++++++========+++++++++++');
-            this.deviceCategory = result.message;
-        },
-
-        // 提交搜索数据
+        // 提交 搜索 数据
         async searchSubmit() {
             let result = await searchInfo(this.searcInfo);
-            this.searchMsg = result.message;
+            // 清除数据
+            this.modifyForm.usedInfo.userNickName = '';
+            this.modifyForm.usedInfo.userName = '';
+            this.modifyForm.usedInfo.userPhone = '';
+            this.modifyForm.usedInfo.useTimeStart = '';
+            this.modifyForm.usedInfo.useTimeEnd = '';
+            // //////////////////
+            this.modifyForm.name = result.message.name;
+            this.modifyForm.des = result.message.des;
+            this.modifyForm.price = result.message.price;
+            this.modifyForm.imgUrl = result.message.imgUrl;
+            this.modifyForm.status = result.message.status;
+            this.modifyForm.local.longtitue = result.message.local.longtitue;
+            this.modifyForm.local.latitue = result.message.local.latitue;
+            this.modifyForm.usedInfo.userNickName = result.message.usedInfo.userNickName;
+            this.modifyForm.usedInfo.userName = result.message.usedInfo.userName;
+            this.modifyForm.usedInfo.userPhone = result.message.usedInfo.userPhone;
+            this.modifyForm.usedInfo.useTimeStart = result.message.usedInfo.useTimeStart;
+            this.modifyForm.usedInfo.useTimeEnd = result.message.usedInfo.useTimeEnd;
+            this.init(result.message.local.longtitue, result.message.local.latitue)
             if (result.code === 200) {
                 this.$message.success("查询成功！");
             } else {
                 this.$message.error("查询失败！");
             }
         },
-
-        // 清除查询缓存
-        menuClick() {
-            this.searchMsg = [];
-        }
     }
 };
 </script>
